@@ -4,12 +4,13 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
-	"github.com/tsawler/vigilate/internal/helpers"
-	"github.com/tsawler/vigilate/internal/models"
 	"log"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/tsawler/vigilate/internal/helpers"
+	"github.com/tsawler/vigilate/internal/models"
 )
 
 // LoginScreen shows the home (login) screen
@@ -57,7 +58,7 @@ func (repo *DBRepo) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if r.Form.Get("remember") == "remember" {
+	if r.Form.Get("active") == "remember" {
 		randomString := helpers.RandomString(12)
 		hasher := sha256.New()
 

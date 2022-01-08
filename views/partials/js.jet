@@ -1,4 +1,22 @@
+<script type="text/javascript" src="/static/admin/js/pusher.min.js"></script>
 <script>
+
+    Pusher.logToConsole = true;
+
+    let pusher = new Pusher("{{.PreferenceMap["pusher-key"]}}",{
+    wsHost: 'localhost',
+    wsPort: 4001,
+    encrypted: false,
+    enabledTransports: ["ws", "wss"],
+    disabledTransports: []
+    })
+
+    let publicChannel = pusher.subscribe("public-channel");
+
+    publicChannel.bind("test-event",function(data){
+        successAlert(data.message);
+    })
+
     let attention = Prompt();
 
     {{if .Flash != ""}}

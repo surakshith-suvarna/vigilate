@@ -120,7 +120,16 @@ func (repo *DBRepo) PostSettings(w http.ResponseWriter, r *http.Request) {
 
 // AllHosts displays list of all hosts
 func (repo *DBRepo) AllHosts(w http.ResponseWriter, r *http.Request) {
-	err := helpers.RenderPage(w, r, "hosts", nil, nil)
+
+	hosts, err := repo.DB.AllHosts()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	vars := make(jet.VarMap)
+	vars.Set("hosts", hosts)
+
+	err = helpers.RenderPage(w, r, "hosts", vars, nil)
 	if err != nil {
 		printTemplateError(w, err)
 	}
@@ -128,10 +137,80 @@ func (repo *DBRepo) AllHosts(w http.ResponseWriter, r *http.Request) {
 
 // Host shows the host add/edit form
 func (repo *DBRepo) Host(w http.ResponseWriter, r *http.Request) {
-	err := helpers.RenderPage(w, r, "host", nil, nil)
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		log.Println(err)
+	}
+	var h models.Host
+	if id > 0 {
+		//Pull data from the database
+		host, err := repo.DB.GetHostById(id)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		h = host
+	}
+	vars := make(jet.VarMap)
+	vars.Set("host", h)
+
+	err = helpers.RenderPage(w, r, "host", vars, nil)
 	if err != nil {
 		printTemplateError(w, err)
 	}
+}
+
+func (repo *DBRepo) PostHost(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		log.Println(err)
+		helpers.ServerError(w, r, err)
+		return
+	}
+	var h models.Host
+	if id > 0 {
+		host, err := repo.DB.GetHostById(id)
+		if err != nil {
+			log.Println(err)
+			repo.App.Session.Put(r.Context(), "error", "Unable to find host, please try again later")
+			http.Redirect(w, r, fmt.Sprintf("/admin/host/%d", id), http.StatusSeeOther)
+		}
+		h = host
+	}
+
+	h.HostName = r.Form.Get("host_name")
+	h.CanonicalName = r.Form.Get("canonical_name")
+	h.URL = r.Form.Get("url")
+	h.IP = r.Form.Get("ip")
+	h.IPV6 = r.Form.Get("ipv6")
+	h.Location = r.Form.Get("location")
+	h.OS = r.Form.Get("os")
+	active, err := strconv.Atoi(r.Form.Get("active"))
+	if err != nil {
+		log.Println(err)
+		//helpers.ServerError(w, r, err)
+		//return
+	}
+	h.Active = active
+	if id > 0 {
+		err := repo.DB.UpdateHost(h)
+		if err != nil {
+			log.Println(err)
+			repo.App.Session.Put(r.Context(), "error", "Unable to find host, please try again later")
+			http.Redirect(w, r, fmt.Sprintf("/admin/host/%d", h.ID), http.StatusSeeOther)
+		}
+	} else {
+		h.ID, err = repo.DB.InsertHost(h)
+		if err != nil {
+			log.Println(err)
+			helpers.ServerError(w, r, err)
+			return
+		}
+	}
+
+	repo.App.Session.Put(r.Context(), "flash", "Saved Changes")
+	http.Redirect(w, r, fmt.Sprintf("/admin/host/%d", h.ID), http.StatusSeeOther)
+
 }
 
 // AllUsers lists all admin users

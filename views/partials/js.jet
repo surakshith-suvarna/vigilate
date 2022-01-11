@@ -4,12 +4,13 @@
     Pusher.logToConsole = true;
 
     let pusher = new Pusher("{{.PreferenceMap["pusher-key"]}}",{
+    authEndpoint: "/pusher/auth",
     wsHost: 'localhost',
     wsPort: 4001,
-    encrypted: false,
+    forceTLS: false,
     enabledTransports: ["ws", "wss"],
     disabledTransports: []
-    })
+    });
 
     let publicChannel = pusher.subscribe("public-channel");
 

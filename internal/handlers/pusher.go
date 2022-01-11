@@ -17,6 +17,7 @@ func (repo *DBRepo) PusherAuth(w http.ResponseWriter, r *http.Request) {
 	//parameters from the request body
 	params, _ := ioutil.ReadAll(r.Body)
 
+	//create pusher go client member data used to connect and authenticate with pusher server
 	presenceData := pusher.MemberData{
 		UserID: strconv.Itoa(userID),
 		UserInfo: map[string]string{
@@ -25,7 +26,7 @@ func (repo *DBRepo) PusherAuth(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	//Authenticate presense channel
+	//Authenticate presense channel with pusher server
 	response, err := app.WsClient.AuthenticatePresenceChannel(params, presenceData)
 	if err != nil {
 		log.Println(err)
@@ -42,7 +43,7 @@ func (repo *DBRepo) TestPusher(w http.ResponseWriter, r *http.Request) {
 	data["message"] = "Hello World"
 
 	//Push data using the pusher client
-	err := repo.App.WsClient.Trigger("my-channel", "my-event", data)
+	err := repo.App.WsClient.Trigger("public-channel", "test-event", data)
 	if err != nil {
 		log.Println(err)
 	}

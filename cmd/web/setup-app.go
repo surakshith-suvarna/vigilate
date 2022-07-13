@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/robfig/cron/v3"
 	"log"
 	"net/http"
 	"os"
@@ -138,6 +139,21 @@ func setupApp() (*string, error) {
 	log.Println("Secure", *pusherSecure)
 
 	app.WsClient = wsClient
+	monitorMap := make(map[int]cron.EntryID)
+	app.MonitorMap = monitorMap
+
+	//Setup Scheduler
+	localZone, _ := time.LoadLocation("UTC")
+	scheduler := cron.New(cron.WithLocation(localZone), cron.WithChain(
+		cron.DelayIfStillRunning(cron.DefaultLogger),
+		cron.Recover(cron.DefaultLogger)))
+	app.Scheduler = scheduler
+
+	go handlers.Repo.StartMonitoring()
+
+	if app.PreferenceMap["monitoring_live"] == "1" {
+		app.Scheduler.Start()
+	}
 
 	helpers.NewHelpers(&app)
 

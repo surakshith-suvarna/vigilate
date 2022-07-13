@@ -1,37 +1,58 @@
 module github.com/tsawler/vigilate
 
-go 1.15
+go 1.17
 
 require (
 	github.com/CloudyKit/jet/v6 v6.0.2
-	github.com/PuerkitoBio/goquery v1.6.1 // indirect
 	github.com/alexedwards/scs/postgresstore v0.0.0-20210131110750-3ca38f9a41cc
 	github.com/alexedwards/scs/v2 v2.4.0
-	github.com/andybalholm/cascadia v1.2.0 // indirect
-	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef
 	github.com/aymerick/douceur v0.2.0
-	github.com/dimiro1/ipe v1.2.0 // indirect
-	github.com/go-chi/chi v4.1.2+incompatible
-	github.com/golang/glog v1.0.0 // indirect
-	github.com/gorilla/css v1.0.0 // indirect
-	github.com/gorilla/websocket v1.4.2 // indirect
+	github.com/go-chi/chi/v5 v5.0.7
 	github.com/jackc/pgconn v1.8.0
-	github.com/jackc/pgproto3/v2 v2.0.7 // indirect
 	github.com/jackc/pgx/v4 v4.10.1
 	github.com/justinas/nosurf v1.1.1
+	github.com/pusher/pusher-http-go v4.0.1+incompatible
+	github.com/robfig/cron/v3 v3.0.1
+	github.com/xhit/go-simple-mail/v2 v2.7.0
+	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
+	jaytaylor.com/html2text v0.0.0-20200412013138-3577fbdbcff7
+)
+
+require (
+	github.com/CloudyKit/fastprinter v0.0.0-20200109182630-33d98a066a53 // indirect
+	github.com/PuerkitoBio/goquery v1.6.1 // indirect
+	github.com/agtorre/gocolorize v1.0.0 // indirect
+	github.com/andybalholm/cascadia v1.2.0 // indirect
+	github.com/fsnotify/fsnotify v1.5.1 // indirect
+	github.com/go-stack/stack v1.8.0 // indirect
+	github.com/gorilla/css v1.0.0 // indirect
+	github.com/inconshreveable/log15 v0.0.0-20201112154412-8562bdadbbac // indirect
+	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
+	github.com/jackc/pgio v1.0.0 // indirect
+	github.com/jackc/pgpassfile v1.0.0 // indirect
+	github.com/jackc/pgproto3/v2 v2.0.7 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20200714003250-2b9c44734f2b // indirect
+	github.com/jackc/pgtype v1.6.2 // indirect
+	github.com/jessevdk/go-flags v1.4.0 // indirect
+	github.com/mattn/go-colorable v0.1.6 // indirect
+	github.com/mattn/go-isatty v0.0.12 // indirect
 	github.com/mattn/go-runewidth v0.0.10 // indirect
 	github.com/olekukonko/tablewriter v0.0.4 // indirect
-	github.com/pusher/pusher-http-go v4.0.1+incompatible
+	github.com/pkg/errors v0.9.1 // indirect
+	github.com/revel/cmd v1.0.3 // indirect
+	github.com/revel/config v1.0.0 // indirect
+	github.com/revel/log15 v2.11.20+incompatible // indirect
+	github.com/revel/pathtree v0.0.0-20140121041023-41257a1839e9 // indirect
+	github.com/revel/revel v1.0.0 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
-	github.com/robfig/cron/v3 v3.0.1
 	github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf // indirect
-	github.com/tatsushid/go-fastping v0.0.0-20160109021039-d7bb493dee3e
-	github.com/xhit/go-simple-mail/v2 v2.7.0
-	goji.io v2.0.2+incompatible // indirect
-	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
+	github.com/twinj/uuid v1.0.0 // indirect
+	github.com/xeonx/timeago v1.0.0-rc4 // indirect
 	golang.org/x/net v0.0.0-20210119194325-5f4716e94777 // indirect
-	golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c // indirect
+	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
 	golang.org/x/text v0.3.5 // indirect
+	golang.org/x/tools v0.0.0-20200219054238-753a1d49df85 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
-	jaytaylor.com/html2text v0.0.0-20200412013138-3577fbdbcff7
+	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
+	gopkg.in/stack.v0 v0.0.0-20141108040640-9b43fcefddd0 // indirect
 )

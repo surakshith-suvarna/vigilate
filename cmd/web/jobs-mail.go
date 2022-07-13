@@ -99,7 +99,8 @@ func (d *Dispatcher) dispatch() {
 // processMailQueueJob processes the main queue job (sends email)
 func (w Worker) processMailQueueJob(mailMessage channeldata.MailData) {
 
-	tmpl := "bootstrap.mail.tmpl"
+	//uses the standard golang template with template cache. Since we are using jet, disabling this
+	/*tmpl := "bootstrap.mail.tmpl"
 	if mailMessage.Template != "" {
 		tmpl = mailMessage.Template
 	}
@@ -108,7 +109,7 @@ func (w Worker) processMailQueueJob(mailMessage channeldata.MailData) {
 	if !ok {
 		fmt.Println("Could not get mail template", mailMessage.Template)
 		return
-	}
+	}*/
 
 	data := struct {
 		Content       template.HTML
@@ -129,6 +130,13 @@ func (w Worker) processMailQueueJob(mailMessage channeldata.MailData) {
 		FloatMap:      mailMessage.FloatMap,
 		RowSets:       mailMessage.RowSets,
 	}
+
+	//provide a path of golang template for sending mail
+	paths := []string{
+		"./views/mail.tmpl",
+	}
+
+	t := template.Must(template.New("mail.tmpl").ParseFiles(paths...))
 
 	var tpl bytes.Buffer
 	if err := t.Execute(&tpl, data); err != nil {

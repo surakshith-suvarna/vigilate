@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -15,7 +15,7 @@ func (repo *DBRepo) PusherAuth(w http.ResponseWriter, r *http.Request) {
 	u, _ := repo.DB.GetUserById(userID)
 
 	//parameters from the request body
-	params, _ := ioutil.ReadAll(r.Body)
+	params, _ := io.ReadAll(r.Body)
 
 	//create pusher go client member data used to connect and authenticate with pusher server
 	presenceData := pusher.MemberData{
@@ -36,15 +36,4 @@ func (repo *DBRepo) PusherAuth(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	_, _ = w.Write(response)
 
-}
-
-func (repo *DBRepo) TestPusher(w http.ResponseWriter, r *http.Request) {
-	data := make(map[string]string)
-	data["message"] = "Hello World"
-
-	//Push data using the pusher client
-	err := repo.App.WsClient.Trigger("public-channel", "test-event", data)
-	if err != nil {
-		log.Println(err)
-	}
 }

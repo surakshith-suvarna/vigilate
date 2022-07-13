@@ -14,8 +14,208 @@
 
     let publicChannel = pusher.subscribe("public-channel");
 
-    publicChannel.bind("test-event",function(data){
+    publicChannel.bind("app-starting",function(data){
         successAlert(data.message);
+
+        let toggle = document.getElementById("monitoring-live");
+        toggle.checked = true;
+    })
+
+    publicChannel.bind("app-stopping",function(data){
+        warningAlert(data.message);
+        let toggle = document.getElementById("monitoring-live");
+        toggle.checked = false;
+
+        let tableExists = !! document.getElementById("schedule-table");
+
+        if(tableExists){
+            let table = document.getElementById("schedule-table");
+            table.tBodies[0].innerHTML = ""
+
+            let row = table.tBodies[0].insertRow(-1);
+            let cellOne = row.insertCell(0)
+            cellOne.setAttribute("colspan","5");
+            cellOne.innerHTML = "No schedules"
+
+        }
+    })
+
+    publicChannel.bind("schedule-item-removed-event",function (data){
+        console.log("schedule item removed , host service id " + data.host_service_id);
+        let rowExists = !! document.getElementById("schedule-"+ data.host_service_id);
+
+        if(rowExists){
+            let row = document.getElementById("schedule-"+ data.host_service_id);
+            row.parentNode.removeChild(row);
+
+            //check to see if we need to add no schedules
+            let currentTable = document.getElementById("schedule-table")
+            let rowCount = currentTable.rows.length
+
+            if (rowCount === 1){
+                let row = currentTable.tBodies[0].insertRow(-1)
+                let cell = row.insertCell(0)
+                cell.setAttribute("colspan","5")
+                cell.innerHTML = "No schedules"
+            }
+
+        }
+    })
+
+    publicChannel.bind("schedule-change-event",function (data){
+        let scheduleTableExists = !! document.getElementById("schedule-table");
+
+        //check if no schedule exists and delete if it does
+        if (scheduleTableExists){
+            let scheduleTable = document.getElementById("schedule-table");
+            let tableContent = scheduleTable.innerHTML
+
+            if(tableContent.includes("No schedules")) {
+                let rowCount = scheduleTable.rows.length;
+
+                for (let i = rowCount - 1; i > 0; i--) {
+                    scheduleTable.deleteRow(i);
+                }
+            }
+
+                //delete existing row if it exists
+                let rowExists = !! document.getElementById("schedule-" + data.host_service_id);
+
+                if (rowExists){
+                    let row = document.getElementById("schedule-" + data.host_service_id);
+                    row.parentNode.removeChild(row);
+                }
+
+                let newRow = scheduleTable.tBodies[0].insertRow(-1);
+                newRow.setAttribute("id","schedule-" + data.host_service_id);
+
+                let newCell = newRow.insertCell(0);
+                let newText = document.createTextNode(data.host);
+                newCell.appendChild(newText);
+
+                newCell = newRow.insertCell(1);
+                newText = document.createTextNode(data.service);
+                newCell.appendChild(newText);
+
+            newCell = newRow.insertCell(2);
+            newText = document.createTextNode(data.schedule);
+            newCell.appendChild(newText);
+
+            newCell = newRow.insertCell(3);
+            newText = document.createTextNode(data.last_run);
+            newCell.appendChild(newText);
+
+            newCell = newRow.insertCell(4);
+            if (data.next_run === undefined){
+                newText = document.createTextNode("Pending..");
+            }else {
+                newText = document.createTextNode(data.next_run);
+            }
+            newCell.appendChild(newText);
+
+
+
+        }
+    })
+    publicChannel.bind("host-service-status-changed",function (data){
+        attention.toast({
+            msg: data.last_message,
+            icon: "info",
+        })
+
+        let exists = !! document.getElementById("host-service-" + data.host_service_id);
+
+        if (exists){
+            console.log(data.host_service_id);
+            let row = document.getElementById("host-service-" + data.host_service_id);
+            row.parentNode.removeChild(row);
+        }
+
+        let tableExists = !! document.getElementById(data.status + "-table");
+
+        if(tableExists){
+            let tableRef = document.getElementById(data.status + "-table");
+            let newRow = tableRef.tBodies[0].insertRow(-1)
+            newRow.setAttribute("id","host-service-" + data.host_service_id);
+
+            let cellOne = newRow.insertCell(0);
+            cellOne.innerHTML = `<i class="${data.icon}"></i>
+                                                ${data.service_name}
+                                                <span class="badge bg-secondary checknow" onclick="checkNow(${data.host_service_id},'${data.status}')">Check Now</span>`
+            let cellTwo = newRow.insertCell(1);
+            cellTwo.innerHTML = data.last_check;
+            let cellThree = newRow.insertCell(2);
+            cellThree.innerHTML = data.last_message;
+        }
+
+        let serviceExists = !! document.getElementById("service-" + data.host_service_id);
+
+        if (serviceExists){
+            let rowElement = document.getElementById("service-" + data.host_service_id);
+            rowElement.parentNode.removeChild(rowElement);
+        }
+
+        let serviceTableExists = !! document.getElementById(data.status + "-service-table");
+
+        if (serviceTableExists){
+            let serviceTableRef = document.getElementById(data.status + "-service-table");
+
+            let serviceRows = serviceTableRef.tBodies[0].rows
+
+            /*for (let i=0; i < serviceRows.length; i++){
+                if (serviceRows[i].innerText === "No Services"){
+                    serviceRows[i].parentNode.removeChild(serviceRows[i]);
+                }
+            }*/
+            if (serviceRows[0].innerText === "No Services"){
+                serviceRows[0].parentNode.removeChild(serviceRows[0]);
+            }
+            let serviceRow = serviceTableRef.tBodies[0].insertRow(-1);
+            serviceRow.setAttribute("id","service-" + data.host_service_id);
+
+            let serviceCellOne = serviceRow.insertCell(0);
+            serviceCellOne.innerHTML = `<a href="/admin/host/${data.host_id}#${data.status}-content" class="link-primary">${data.host_name}</a>`;
+
+            let  serviceCellTwo = serviceRow.insertCell(1);
+            serviceCellTwo.innerHTML = data.last_check;
+
+            let serviceCellThree = serviceRow.insertCell(2);
+
+            switch (data.status){
+                case "healthy" : serviceCellThree.innerHTML = `<span class="badge bg-success">${data.status}</span>`;
+                    break;
+                case "problem" : serviceCellThree.innerHTML = `<span class="badge bg-danger">${data.status}</span>`;
+                    break;
+            }
+
+            let serviceCellFour = serviceRow.insertCell(3);
+            serviceCellFour.innerHTML = data.last_message;
+        }
+    })
+
+
+
+    publicChannel.bind("host-service-count-changed",function (data){
+        let healthy = !! document.getElementById("healthy-count");
+        let warning = !! document.getElementById("warning-count");
+        let problem = !! document.getElementById("problem-count");
+        let pending = !! document.getElementById("pending-count");
+
+        if (healthy){
+            document.getElementById("healthy-count").innerHTML = data.healthy;
+        }
+
+        if (warning){
+            document.getElementById("warning-count").innerHTML = data.warning;
+        }
+
+        if (problem){
+            document.getElementById("problem-count").innerHTML = data.problem;
+        }
+
+        if (pending){
+            document.getElementById("pending-count").innerHTML = data.pending;
+        }
     })
 
     let attention = Prompt();
@@ -31,4 +231,101 @@
     {{if .Error != ""}}
         errorAlert('{{.Error}}')
     {{end}}
+
+    document.addEventListener("DOMContentLoaded", function () {
+            let tabMap = new Map();
+            let tabs = document.querySelectorAll('[data-toggle="tab"]');
+            let i = 0;
+            Array.prototype.filter.call(tabs, function (el) {
+                el.addEventListener("click", function () {
+                    history.pushState("", document.title, window.location.pathname);
+                    localStorage.setItem('activeTab', el.getAttribute("data-target"));
+                })
+
+                tabMap.set(el.getAttribute("href"), i);
+                i++;
+            });
+
+            if (!window.location.hash) {
+                let activeTab = localStorage.getItem('activeTab');
+                if (activeTab) {
+                    document.querySelectorAll('[data-toggle="tab"]')[activeTab].Tab.show()
+                }
+            } else {
+                if (tabMap.has(window.location.hash)) {
+                    document.querySelectorAll('[data-toggle="tab"]')[tabMap.get(window.location.hash)].Tab.show()
+                }
+            }
+
+            document.getElementById("monitoring-live").addEventListener("change",function(){
+                //if its checked set it as enabled
+                let enabled = document.getElementById("monitoring-live").checked;
+                //if monitoring is setting to not enabled/disabled when changes
+                if(!enabled){
+                    attention.confirm({
+                        html: "This will stop monitoring from all hosts and services. Do you confirm?",
+                        callback: function(result){
+                            if(result){
+                                //want to turn monitoring off
+                                console.log("Monitoring turned off");
+                                updateSystemPref("monitoring_live","0");
+                                toggleMonitoring(0);
+                            }else{
+                                document.getElementById("monitoring-live").checked = true;
+                            }
+                        }
+                    })
+                }else{
+                    updateSystemPref("monitoring_live","1");
+                    toggleMonitoring(1);
+                }
+            })
+    })
+
+    function updateSystemPref(prefName,prefValue){
+        let formData = new FormData();
+        formData.append("pref-name", prefName);
+        formData.append("pref-value", prefValue);
+        formData.append("csrf_token","{{.CSRFToken}}")
+
+        let ajax = new XMLHttpRequest();
+        ajax.responseType = "json";
+        ajax.open("POST","/admin/preferences/ajax/set-system-pref");
+        ajax.send(formData);
+        ajax.onreadystatechange = function (){
+            if(ajax.readyState === 4) {
+                let resp = ajax.response;
+                if(!resp.ok){
+                    errorAlert("Error: "+ resp.message)
+                }else{
+                    console.log()
+                }
+            }
+        }
+
+
+    }
+
+    function toggleMonitoring(enable){
+        let formData = new FormData();
+        formData.append("enabled",enable);
+        formData.append("csrf_token","{{.CSRFToken}}")
+
+        let ajax = new XMLHttpRequest()
+        ajax.responseType = "json";
+        ajax.open("POST","/admin/preferences/ajax/toggle-monitoring");
+        ajax.send(formData);
+        ajax.onreadystatechange=function(){
+            if (ajax.readyState === 4){
+                let resp = ajax.response
+                if(! resp.ok){
+                    errorAlert("Error: " + resp.message);
+                }else{
+                    console.log(resp)
+                }
+            }
+        }
+
+
+    }
 </script>

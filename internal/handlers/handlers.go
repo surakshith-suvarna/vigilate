@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -8,7 +9,7 @@ import (
 	"strconv"
 
 	"github.com/CloudyKit/jet/v6"
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 	"github.com/tsawler/vigilate/internal/config"
 	"github.com/tsawler/vigilate/internal/driver"
 	"github.com/tsawler/vigilate/internal/helpers"
@@ -43,13 +44,26 @@ func NewPostgresqlHandlers(db *driver.DB, a *config.AppConfig) *DBRepo {
 
 // AdminDashboard displays the dashboard
 func (repo *DBRepo) AdminDashboard(w http.ResponseWriter, r *http.Request) {
-	vars := make(jet.VarMap)
-	vars.Set("no_healthy", 0)
-	vars.Set("no_problem", 0)
-	vars.Set("no_pending", 0)
-	vars.Set("no_warning", 0)
 
-	err := helpers.RenderPage(w, r, "dashboard", vars, nil)
+	pending, healthy, warning, problem, err := repo.DB.GetAllServiceStatusCounts()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	vars := make(jet.VarMap)
+	vars.Set("no_healthy", healthy)
+	vars.Set("no_problem", problem)
+	vars.Set("no_pending", pending)
+	vars.Set("no_warning", warning)
+
+	hosts, err := repo.DB.AllHosts()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	vars.Set("hosts", hosts)
+
+	err = helpers.RenderPage(w, r, "dashboard", vars, nil)
 	if err != nil {
 		printTemplateError(w, err)
 	}
@@ -57,7 +71,15 @@ func (repo *DBRepo) AdminDashboard(w http.ResponseWriter, r *http.Request) {
 
 // Events displays the events page
 func (repo *DBRepo) Events(w http.ResponseWriter, r *http.Request) {
-	err := helpers.RenderPage(w, r, "events", nil, nil)
+
+	events, err := repo.DB.GetAllEvents()
+	if err != nil {
+		log.Println(err)
+	}
+	data := make(jet.VarMap)
+	data.Set("events", events)
+
+	err = helpers.RenderPage(w, r, "events", data, nil)
 	if err != nil {
 		printTemplateError(w, err)
 	}
@@ -354,4 +376,123 @@ func show500(w http.ResponseWriter, r *http.Request) {
 
 func printTemplateError(w http.ResponseWriter, err error) {
 	_, _ = fmt.Fprint(w, fmt.Sprintf(`<small><span class='text-danger'>Error executing template: %s</span></small>`, err))
+}
+
+type serviceJson struct {
+	OK bool `json:"ok"`
+}
+
+func (repo *DBRepo) ToggleServiceForHost(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		log.Println(err)
+	}
+
+	var resp serviceJson
+	resp.OK = true
+
+	hostId, _ := strconv.Atoi(r.Form.Get("host_id"))
+	serviceId, _ := strconv.Atoi(r.Form.Get("service-id"))
+	active, _ := strconv.Atoi(r.Form.Get("active"))
+
+	err = repo.DB.UpdateHostServiceStatus(hostId, serviceId, active)
+	if err != nil {
+		log.Println(err)
+		resp.OK = false
+	}
+
+	log.Println("host Id ", hostId)
+	log.Println("service Id", serviceId)
+	hs, err := repo.DB.GetHostServiceByHostIDServiceID(hostId, serviceId)
+	if err != nil {
+		log.Println(err)
+	}
+	h, err := repo.DB.GetHostById(hostId)
+	if err != nil {
+		log.Println(err)
+	}
+
+	//add or remove host service from schedule
+	if active == 1 {
+		//add to scheduler
+		repo.pushScheduleChangeEvent(hs, "Pending..")
+		repo.pushHostStatusChangeEvent(h, hs, "Pending..", "")
+		repo.addToMonitorMap(hs)
+
+	} else {
+		//remove from scheduler
+		repo.removeFromMonitorMap(hs)
+	}
+
+	ok, _ := json.MarshalIndent(resp, "", "   ")
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(ok)
+}
+
+func (repo *DBRepo) SetSystemPref(w http.ResponseWriter, r *http.Request) {
+	var resp jsonResp
+	prefName := r.Form.Get("pref-name")
+	prefValue := r.Form.Get("pref-value")
+
+	err := repo.DB.UpdateSystemPref(prefName, prefValue)
+	if err != nil {
+		resp.OK = false
+		resp.Message = err.Error()
+	}
+	app.PreferenceMap["monitoring_live"] = prefValue
+	resp.OK = true
+
+	out, _ := json.MarshalIndent(resp, "", "   ")
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(out)
+}
+
+func (repo *DBRepo) ToggleMonitoring(w http.ResponseWriter, r *http.Request) {
+	var resp jsonResp
+	enabled := r.Form.Get("enabled")
+
+	if enabled == "1" {
+		log.Println("Enable Monitoring")
+		app.PreferenceMap["monitoring_live"] = "1"
+		repo.StartMonitoring()
+		repo.App.Scheduler.Start()
+		resp.OK = true
+
+	} else {
+		log.Println("Disable Monitoring")
+		app.PreferenceMap["monitoring_live"] = "0"
+
+		//Remove all the entries in map from scheduler
+		for _, m := range repo.App.MonitorMap {
+			repo.App.Scheduler.Remove(m)
+		}
+
+		//Clear the MonitorMap entries
+		for e := range repo.App.MonitorMap {
+			delete(repo.App.MonitorMap, e)
+		}
+
+		//Clear the scheduler entries
+		for _, s := range repo.App.Scheduler.Entries() {
+			repo.App.Scheduler.Remove(s.ID)
+		}
+
+		//Stop the scheduler
+		repo.App.Scheduler.Stop()
+		resp.OK = true
+
+		data := make(map[string]string)
+		data["message"] = "Monitoring is stopped!"
+		err := app.WsClient.Trigger("public-channel", "app-stopping", data)
+		if err != nil {
+			log.Println(err)
+		}
+
+	}
+
+	out, _ := json.MarshalIndent(resp, "", "   ")
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(out)
 }

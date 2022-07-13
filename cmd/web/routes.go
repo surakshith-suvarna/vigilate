@@ -3,7 +3,7 @@ package main
 import (
 	"net/http"
 
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 	"github.com/tsawler/vigilate/internal/handlers"
 )
 
@@ -22,8 +22,6 @@ func routes() http.Handler {
 	mux.Post("/", handlers.Repo.Login)
 
 	mux.Get("/user/logout", handlers.Repo.Logout)
-
-	mux.Get("/pusher-test", handlers.Repo.TestPusher)
 
 	//Pusher routes
 	mux.Route("/pusher", func(mux chi.Router) {
@@ -52,7 +50,7 @@ func routes() http.Handler {
 		// service status pages (all hosts)
 		mux.Get("/all-healthy", handlers.Repo.AllHealthyServices)
 		mux.Get("/all-warning", handlers.Repo.AllWarningServices)
-		mux.Get("/all-problems", handlers.Repo.AllProblemServices)
+		mux.Get("/all-problem", handlers.Repo.AllProblemServices)
 		mux.Get("/all-pending", handlers.Repo.AllPendingServices)
 
 		// users
@@ -64,10 +62,16 @@ func routes() http.Handler {
 		// schedule
 		mux.Get("/schedule", handlers.Repo.ListEntries)
 
+		//Preferences
+		mux.Post("/preferences/ajax/set-system-pref", handlers.Repo.SetSystemPref)
+		mux.Post("/preferences/ajax/toggle-monitoring", handlers.Repo.ToggleMonitoring)
+
 		// hosts
 		mux.Get("/host/all", handlers.Repo.AllHosts)
 		mux.Get("/host/{id}", handlers.Repo.Host)
 		mux.Post("/host/{id}", handlers.Repo.PostHost)
+		mux.Post("/host/ajax/toggle-service", handlers.Repo.ToggleServiceForHost)
+		mux.Get("/perform-check/{id}/{oldStatus}", handlers.Repo.TestCheck)
 	})
 
 	// static files

@@ -14,7 +14,7 @@ require (
 	github.com/pusher/pusher-http-go v4.0.1+incompatible
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/xhit/go-simple-mail/v2 v2.7.0
-	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
+	golang.org/x/crypto v0.1.0
 	jaytaylor.com/html2text v0.0.0-20200412013138-3577fbdbcff7
 )
 
